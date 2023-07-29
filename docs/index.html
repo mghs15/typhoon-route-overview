@@ -4,8 +4,8 @@
 <meta charset='utf-8' />
 <title>台風経路図</title>
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.js'></script>
-<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.css' rel='stylesheet' />
+<script src='https://unpkg.com/maplibre-gl@^2.4/dist/maplibre-gl.js'></script>
+<link href='https://unpkg.com/maplibre-gl@^2.4/dist/maplibre-gl.css' rel='stylesheet' />
 <style>
 body { margin:0; padding:0;}
 
@@ -415,7 +415,7 @@ for( source in overlayStyle.sources){
 /*************************************************/
 /*Mapbox 関係設定                                */
 /*************************************************/
-const map = new mapboxgl.Map({
+const map = new maplibregl.Map({
   container: 'map', // container id
   hash: true, //add #position on URL
   style: 'https://mghs15.github.io/styling-tools-for-gsi-optbv/mono2.json', // stylesheet location
@@ -429,9 +429,9 @@ const map = new mapboxgl.Map({
 });
 
 
-map.addControl(new mapboxgl.NavigationControl(), 'top-left');
-map.addControl(new mapboxgl.ScaleControl() );
-map.addControl(new mapboxgl.AttributionControl({compact: true}), 'top-right');
+map.addControl(new maplibregl.NavigationControl(), 'top-left');
+map.addControl(new maplibregl.ScaleControl() );
+map.addControl(new maplibregl.AttributionControl({compact: true}), 'top-right');
 
 map.showTileBoundaries = false;
 
@@ -691,7 +691,7 @@ const makePopupHtml = (feature) => {
   
 }
 
-const popup = new mapboxgl.Popup({
+const popup = new maplibregl.Popup({
   closeOnClick: false,
 });
 
