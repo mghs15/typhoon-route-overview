@@ -17,10 +17,10 @@ for( file in flist ){
 head(df)
 tail(df)
 
+tdf <- df
 tdf <- subset(df, df[,11]>0) #最大風速34kt以上
 tdf <- subset(df, df[,18]==1) #上陸のみ
 tdf <- subset(df, df[,18]==1 & df[,11]>0) #最大風速34kt以上/上陸のみ
-
 head(tdf)
 tail(tdf)
 
@@ -29,6 +29,7 @@ tail(tdf)
 #12:50KT長径方向	13:50KT長径	14:50KT短径	
 #15:30KT長径方向	16:30KT長径	17:30KT短径	18:上陸
 
+# プロットと同時に単回帰分析を行う関数を作成する
 splot <- function(x, y, col, main) {
   plot(x, y, col=col, main=main)
   m <- lm(y ~ x)
@@ -39,11 +40,19 @@ splot <- function(x, y, col, main) {
 pcol = tdf[,2]
 
 splot(tdf[,8], tdf[,10], col=pcol, main="緯度と中心気圧の関係")
+abline(v=35.5, col="red") #東京横浜
+abline(v=33.5, col="red")　#紀伊半島
+abline(v=31, col="red")　#大隅半島
+abline(v=26.2, col="red")　#那覇市
+abline(h=911.8, col="red") #室戸台風
+abline(h=929.6, col="red") #伊勢湾台風
+
+# https://www.bousai.go.jp/kyoiku/kyokun/kyoukunnokeishou/rep/1959_isewan_typhoon/index.html
+
 splot(tdf[,8], tdf[,11], col=pcol, main="緯度と最大風速の関係")
 splot(tdf[,8], tdf[,13], col=pcol, main="緯度と50KT長径の関係")
 splot(tdf[,11], tdf[,13], col=pcol, main="最大風速と50KT長径の関係")
 splot(tdf[,10], tdf[,13], col=pcol, main="中心気圧と50KT長径の関係")
-
 
 splot(tdf[,13], tdf[,14], col=pcol, main="50KT長径と50KT短径の関係")
 splot(tdf[,13], tdf[,16], col=pcol, main="50KT長径と30KT長径の関係")
@@ -52,6 +61,7 @@ pairs(tdf[,c(2,8,9,10,11,13)], panel = panel.smooth)
 
 boxplot(tdf[,10] ~ tdf[,2], main="月と中心気圧の関係")
 boxplot(tdf[,11] ~ tdf[,2], main="月と最大風速の関係")
+boxplot(tdf[,10] ~ tdf[,1], main="年と中心気圧の関係")
 
 write.csv(tdf, "tyhoon-subset.csv", row.names = FALSE)
 
