@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+<title>台風経路図</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.css' rel='stylesheet' />
+<style>
+body { margin:0; padding:0;}
+
+
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 40px;
+  width: 100%;
+}
+
+#menutop{
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+#menu {
+  position: relative;
+  padding: 5px 20px ;
+  margin: 0 0;
+  background: #eeeeee;
+  box-shadow: 0px 0px 0px 0px #eeeeee;
+  font-family: 'Open Sans', sans-serif;
+  min-height: 30px;
+  //max-width: 350px;
+  pointer-events: auto;
+}
+
+button.local {
+  display: block;  
+  position: relative;
+  left: 0px;
+  right: 0px;
+  text-align: center;
+  background: #dddddd;
+  border: solid 2px #ddd;
+  border-radius: 4px;
+  width: 100%;
+  line-height: 1.5em;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+button.small {
+  text-align:center;
+  background: #dddddd;
+  padding: 0 0.5em 0 0.5em;
+  border: solid 2px #aaa;
+  border-radius: 4px;
+  margin: 2.5px 0px 2.5px 0px;
+  line-height: 1.5em;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+#slider_01 {
+  //width: 80%;
+}
+
+#slider_02 {
+  //width: 80%;
+}
+
+#note {
+  position: relative;
+  color: #FF0000;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: bold;
+  right: 0.5em;
+  text-align: right;
+  text-shadow: #FFFFFF 0.2em 0.2em 0.2em, #FFFFFF -0.2em 0.2em 0.2em, #FFFFFF 0.2em -0.2em 0.2em, #FFFFFF -0.2em -0.2em 0.2em;
+}
+
+
+#overlay-page {
+  display: grid;
+  grid-template-rows: 45px 1fr 45px;
+  grid-gap: 8px;
+  z-index: 100000;
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  right: 4px;
+  margin: auto;
+  padding: 8px;
+  border-radius: 8px;
+  border: 2px solid #aaaaaa;
+  background-color: #eeeeee;
+}
+
+#overlay-page-title {
+  font-weight: bold;
+  text-align: center;
+}
+
+#overlay-page-header {
+  border-bottom: 1px solid #aaaaaa;
+  padding: 8px;
+}
+
+#overlay-page-footer {
+  border-top: 1px solid #aaaaaa;
+  padding: 8px;
+}
+
+#overlay-page-main {
+  padding: 8px;
+  overflow: auto;
+}
+
+table.popup-table {
+  //border-collapse: collapse;
+  border-top: solid 1px;
+  border-bottom: solid 1px;
+  margin-top: 5px;
+  width: 100%;
+}
+
+
+</style>
+<script>
+const inputSetting = [
+  {
+    "id": "select_01",
+    "type": "select",
+    "title": "上陸",
+    "list": {
+      "--": "すべて",
+      "上陸": "上陸"
+    }
+  },
+  {
+    "id": "text_01",
+    "type": "text",
+    "title": "文字フィルタ",
+    "size": 20,
+    "placeholder": "2019 T19 HAGIBIS",
+    "default": "",
+    "newline": false
+  }
+];
+
+const overlayStyle = {
+  "version": 8,
+  "name": "Vector",
+  "metadata": {
+    "source": {
+      "my-source": {
+         "keyName": "name", //選択リストに利用するKEYとなる属性値名,
+         "title": "台風経路"
+       },
+      "my-source-2": {
+         "keyName": "name", //選択リストに利用するKEYとなる属性値名,
+         "title": "上陸（再上陸）直前の位置"
+       },
+    }
+  },
+  "sources": {
+    'my-source': {
+      // type: geojson の場合 metadata を記述するとエラー
+      type: 'geojson',
+      data: './tyhoon-course.geojson',
+      attribution: "気象庁（台風位置表）"
+    },
+    'my-source-2': {
+      // type: geojson の場合 metadata を記述するとエラー
+      type: 'geojson',
+      data: './tyhoon-jouriku-point.geojson',
+      attribution: "気象庁（台風位置表）"
+    }
+  },
+  "layers": [
+    {
+      'metadata': {
+        'isMainLayer': true
+      },
+      'id': 'my-layer-01-main-01',
+      'type': 'line',
+      'source': 'my-source',
+      'layout': {
+        'visibility': 'visible'
+      },
+      'paint': {
+        'line-color': ['rgb', 100, 100, 255],
+        'line-opacity': 0.5,
+        'line-width': 2
+      }
+    },
+    {
+      'metadata': {
+        'isSelectedLayer': true
+      },
+      'id': 'my-layer-01-select-01',
+      'type': 'line',
+      'source': 'my-source',
+      'layout': {
+        'visibility': 'visible'
+      },
+      'paint': {
+        'line-color': ['rgb', 0, 0, 255],
+        'line-opacity': 0.5,
+        'line-width': 4
+      }
+    },
+
+    {
+      'metadata': {
+        'isMainLayer': true
+      },
+      'id': 'my-main-layer',
+      'type': 'circle',
+      'source': 'my-source-2',
+      'layout': {
+        'visibility': 'visible'
+      },
+      'paint': {
+        'circle-radius': [
+          "interpolate", ["linear"], ["zoom"],
+          11,4,
+          15,8
+        ],
+        'circle-color': ['rgb', 255, 0, 0],
+        'circle-opacity': 1,
+        'circle-stroke-color': ['rgba', 255, 255, 255,1],
+        'circle-stroke-width': 2
+      }
+    },
+    {
+      'metadata': {
+        'isSelectedLayer': true
+      },
+      'id': 'my-selected-layer',
+      'type': 'circle',
+      'source': 'my-source-2',
+      'layout': {
+        'visibility': 'visible'
+      },
+      'paint': {
+        'circle-radius': [
+          "interpolate", ["linear"], ["zoom"],
+          11,5,
+          15,9
+        ],
+        'circle-color': ['rgba', 255, 200, 200, 0],
+        'circle-stroke-color': ['rgba', 255,100,100,1],
+        'circle-stroke-width': 6
+      }
+    },
+  ]
+};
+
+</script>
+</head>
+<body>
+
+
+<div id='map'></div>
+
+
+<div id='menutop'>
+  <div id="note">
+    <span>出典：台風位置表（気象庁）</span>
+  </div>
+
+<div id='menu'>
+
+  <button type="button" class="local" onclick="showFilterSetting()" ><span id="showFilterSettingMode">▼詳細設定を閉じる</span></button>
+  <div id='aco' name='aco' style="display:block;">
+  <div id="selectOverlay"></div>
+  <div id="question"></div>
+  
+  <button type="button" class="small" onclick="openOverlayPage()" ><span>リストを表示する</span></button>
+  <button type="button" class="small" onclick="clearList()" ><span>選択したリストをクリア</span></button>
+  <button type="button" class="small" id="switchPhotoRasterButton" ><span>地図/写真切り替え</span></button>
+  
+  </div><!-- aco -->
+  
+</div>
+
+</div>
+
+
+<!-------------------------------------------------------------------------->
+
+<div id='overlay-page' name='overlay-page' style="display:none;">
+  <div id="overlay-page-header">
+    <div id="overlay-page-title">リスト</div>
+  </div>
+  <div id="overlay-page-main">
+    <div id="overlay-page-list"></div>
+  </div>
+  <div id="overlay-page-footer">
+    <button type="button" class="local" onclick="closeOverlayPage()" ><span>地図に戻る</span></button>
+  </div>
+</div>
+<!-------------------------------------------------------------------------->
+
+<script>
+
+/*************************************************/
+/*設定反映                                       */
+/*************************************************/
+
+const createSlider = s => {
+  
+  const formArea = document.getElementById("question");
+  
+  const slider = document.createElement("input");
+  slider.setAttribute("type", "range");
+  slider.setAttribute("id", s.id);
+  slider.setAttribute("name", s.id);
+  slider.setAttribute("min", s.min);
+  slider.setAttribute("max", s.max);
+  slider.setAttribute("value", s.default);
+  
+  slider.addEventListener("change", () => {refleshAll();} );
+  formArea.appendChild(slider);  
+}
+
+const createSelector = s => {
+
+  const formArea = document.getElementById("question");
+  
+  const select = document.createElement("select");
+  select.setAttribute("id", s.id);
+  select.setAttribute("name", s.id);
+  
+  for(name in s.list){
+    const option = document.createElement("option");
+    option.setAttribute("value", s.list[name]);
+    option.innerText = name;
+    select.appendChild(option);
+  }
+  
+  select.addEventListener("change", () => {refleshAll();} );
+  formArea.appendChild(select);  
+
+}
+
+const createTextInput = s => {
+  
+  const formArea = document.getElementById("question");
+  
+  const input = document.createElement("input");
+  input.setAttribute("type", "text");
+  input.setAttribute("id", s.id);
+  input.setAttribute("name", s.id);
+  input.setAttribute("size", s.size);
+  input.setAttribute("placeholder", s.placeholder);
+  input.setAttribute("value", s.default);
+  
+  input.addEventListener("change", () => {refleshAll();} );
+  formArea.appendChild(input);  
+}
+
+inputSetting.forEach( s => {
+  //表示エリア取得
+  const formArea = document.getElementById("question");
+  
+  if(s.newline) formArea.appendChild(document.createElement("br"));
+  
+  //inputのタイトル表示
+  const title = document.createElement("span");
+  title.innerText = s.title + ":";
+  formArea.appendChild(title);
+  
+  
+  //タイプごとに入力部分の構成
+  switch(s.type){
+    case "slider":
+      createSlider(s);
+      break;
+    case "select":
+      createSelector(s);
+      break;
+    case "text":
+      createTextInput(s);
+      break;
+  }
+  
+});
+
+
+//Sourceの数だけチェックボックスを作る。
+for( source in overlayStyle.sources){
+  const formAreaSelectOverlay = document.getElementById("selectOverlay");
+  
+  const input = document.createElement("input");
+  input.setAttribute("name", "selectOverlayCheck");
+  input.setAttribute("type", "checkbox");
+  input.setAttribute("checked", "checked");
+  input.setAttribute("value", source);
+  input.addEventListener("change", () => {selectOverlayLaers();} );
+  formAreaSelectOverlay.appendChild(input);  
+  
+  const title = document.createElement("span");
+  // 本来、source には metadata を記載できないため、以下の処理を修正
+  title.innerText = overlayStyle.sources[source].metadata ? 
+    overlayStyle.sources[source].metadata.title : overlayStyle.metadata.source[source].title;
+  formAreaSelectOverlay.appendChild(title);
+}
+
+/*************************************************/
+/*Mapbox 関係設定                                */
+/*************************************************/
+const map = new mapboxgl.Map({
+  container: 'map', // container id
+  hash: true, //add #position on URL
+  style: 'https://mghs15.github.io/styling-tools-for-gsi-optbv/mono2.json', // stylesheet location
+  center: [139.78148, 35.768793], // starting position [lng, lat]
+  zoom: 9, // starting zoom
+  minZoom: 4,
+  maxZoom: 17.99,
+  attributionControl: false,
+  //clickTolerance: 10,
+  localIdeographFontFamily: ['MS Gothic', 'Hiragino Kaku Gothic Pro', 'sans-serif']
+});
+
+
+map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+map.addControl(new mapboxgl.ScaleControl() );
+map.addControl(new mapboxgl.AttributionControl({compact: true}), 'top-right');
+
+map.showTileBoundaries = false;
+
+
+/*************************************************/
+/*UI 関係設定                                    */
+/*************************************************/
+
+let isShowFilterSetting = true;
+
+const showFilterSetting = () => {
+  const element = document.getElementById("aco");
+  console.log(element );
+  
+  if(isShowFilterSetting ){ //閉じる作業
+    element.style.display = "none";
+    document.getElementById("showFilterSettingMode").innerText = "▲詳細設定を開く";
+  }else{ //開く作業
+    element.style.display = "block";
+    document.getElementById("showFilterSettingMode").innerText = "▼詳細設定を閉じる";
+  }
+  
+  isShowFilterSetting = !isShowFilterSetting;
+
+}
+
+
+/*************************************************/
+/*条件取得 関係設定                              */
+/*************************************************/
+
+const getInputValues = () => {
+  
+  //選択肢をまとめて取得する
+  const res = {};
+  
+  inputSetting.forEach( s => {
+    const id = s.id;
+    const v = "" + document.getElementById(id).value;
+    res[id] = v.replace(/&/g,"&amp;")
+      .replace(/"/g,"&quot;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/'/g, "&#39;");
+  });
+  
+  return res;
+  
+}
+
+/*************************************************/
+/*条件変更時の挙動 関係設定                      */
+/*************************************************/
+
+const refleshAll = () => {
+  
+  //好きな処理を入れる
+  
+  //選択肢の取得
+  const inputValues = getInputValues();
+  console.log(inputValues);
+  
+  //レイヤへのFilterを変更（sub含めて全て）
+  changeAllStyleFilters();
+  
+}
+
+const makeFilter = () => {
+  
+  const inputValues = getInputValues();
+  
+  const filter = [
+    "all",
+    /*
+    [">=", ["get", "scale"], +inputValues["select_01"] ],
+    ["<=", ["get", "scale"], +inputValues["select_02"] ],
+    [">=", ["to-number", ["slice", ["get", "date"], 0, 4]], +inputValues["slider_01"] ],
+    ["<=", ["to-number", ["slice", ["get", "date"], 0, 4]], +inputValues["slider_02"] ]
+    */
+  ];
+  
+  if(inputValues["text_01"]){
+    const words = inputValues["text_01"].split(/(\s|　)/g);
+    console.log(words);
+    words.forEach( word => {
+      if(word.match(/(\s|　)/)) return;
+      filter.push(["in", word, ["coalesce", ["get", "name"], ""] ]);
+    });
+  }
+  
+  if(inputValues["select_01"] == "上陸"){
+    filter.push(["has", "上陸回数"]);
+  }
+  
+  console.log(filter);
+  
+  return filter;
+  
+}
+
+const changeAllStyleFilters = () =>{
+  
+  //レイヤへの処理（選択用レイヤを除く全レイヤへ）
+  overlayInfo.overlayAllLayerIdList.forEach( id => {
+    map.setFilter(id, makeFilter());
+  });
+}
+
+
+const selectOverlayLaers = () => {
+  //ソースごとの表示ON・OFF
+  const checkList = document.getElementsByName("selectOverlayCheck");
+  const checkedList = [];
+  checkList.forEach( box => {
+    console.log(box);
+    if(box.checked) checkedList.push(box.value);
+  });
+  
+  //レイヤへの処理（選択用レイヤを除く全レイヤへ）
+  overlayInfo.overlayAllLayerIdList.forEach( id => {
+    
+    const layer = map.getLayer(id);
+    
+    //対象レイヤのSourceがチェックされたリストに入っている。
+    if(layer.source && checkedList.includes(layer.source)){
+      map.setLayoutProperty(id, 'visibility', 'visible');
+    }else{
+      map.setLayoutProperty(id, 'visibility', 'none');
+    }
+  });
+  
+}
+
+/*************************************************/
+/*地図読み込み時の挙動 関係設定                  */
+/*************************************************/
+
+const overlayInfo = {
+  overlayKeyNames: {},
+  overlaySourceIdList: [],
+  overlayMainLayerIdList: [],
+  overlayAllLayerIdList: [] //selectは除く
+};
+
+
+map.on('load', () => {
+  
+  map.addSource('gsi-raster-seamlessphoto', {
+    'type': 'raster',
+    'tiles': ['https://cyberjapandata.gsi.go.jp/xyz/' + 'seamlessphoto' + '/{z}/{x}/{y}.jpg' ],
+    'minzoom': 2,
+    'maxzoom': 18,
+    'tileSize': 256
+  });
+  
+  map.addLayer({
+    'id': 'gsi-raster-seamlessphoto',
+    'type': 'raster',
+    'source': 'gsi-raster-seamlessphoto',
+    'layout': {
+      'visibility': 'none'
+    },
+    'paint': {}
+  });
+  
+  map.addLayer({
+    'id': 'overlay',
+    'type': 'background',
+    'paint': {
+      'background-opacity':0 
+    }
+  });
+  
+  
+  const el = document.getElementById('switchPhotoRasterButton');
+  if(el){
+    el.addEventListener("click", () => {
+      const vis =  map.getLayoutProperty('gsi-raster-seamlessphoto', 'visibility');
+      
+      if(vis == "none"){
+        map.setLayoutProperty('gsi-raster-seamlessphoto', 'visibility', 'visible');
+      }else{
+        map.setLayoutProperty('gsi-raster-seamlessphoto', 'visibility', 'none');
+      }
+    });
+  }
+  
+  
+  
+  //上乗せデータ用のsourceを順次追加
+  for( id in overlayStyle.sources){
+    map.addSource(id, overlayStyle.sources[id]);
+    overlayInfo.overlaySourceIdList.push(id);
+    // 本来、source には metadata を記載できないため、以下の処理を修正
+    overlayInfo.overlayKeyNames[id] = overlayStyle.sources[id].metadata ? 
+      overlayStyle.sources[id].metadata.keyName : overlayStyle.metadata.source[id].keyName;
+    console.log(`source ${id} を追加`);
+  }
+  
+  //上乗せデータ用のスタイルレイヤを順次追加
+  overlayStyle.layers.forEach( layer => {
+  
+    //選択時の強調用レイヤは除く
+    if(layer.metadata && layer.metadata.isSelectedLayer){
+      return;
+    }
+    
+    layer.filter = makeFilter();
+    map.addLayer(layer);
+    overlayInfo.overlayAllLayerIdList.push(layer.id);
+    //メインレイヤは別途取得
+    if(layer.metadata && layer.metadata.isMainLayer) overlayInfo.overlayMainLayerIdList.push(layer.id);
+
+    console.log(`layer "${layer.id}" を追加`);
+    
+  });
+  
+  map.addLayer({
+    'id': 'overlay-highlight',
+    'type': 'background',
+    'paint': {
+      'background-opacity':0 
+    }
+  });
+  
+  refleshAll();
+  
+});
+
+
+/*************************************************/
+/*地図クリック時の挙動 関係設定                  */
+/*************************************************/
+
+map.on('click', (e) => {
+  openPopupFunc(e);
+  orderListFunc(e);
+});
+
+
+
+//ポップアップ表示 -------------------------------
+
+const makePopupHtml = (feature) => {
+  
+  const prop = feature.properties
+  
+  let htmlString = ""; //ポップアップ
+  let featureProperties = "";
+  for(name in prop){
+    featureProperties = featureProperties + "<tr><td style='vertical-align:top; color:#555555;'>" + name + "</td>"
+                      + "<td style='color:#000000;'>" + prop[name] + "</td></tr>";
+  }
+  htmlString = htmlString + "<table class='popup-table'>" + featureProperties + "</table>";
+  
+  return htmlString;
+  
+}
+
+const popup = new mapboxgl.Popup({
+  closeOnClick: false,
+});
+
+
+const openPopupFunc = (e) => {
+
+  //初期化
+  popup.remove();
+  
+  //レンダリングされた地物を取得
+  const targetLayers = overlayInfo.overlayMainLayerIdList;
+  const sv = 5;
+  const bb = [
+    [e.point.x - sv, e.point.y - sv],
+    [e.point.x + sv, e.point.y + sv]
+  ];
+  const features = map.queryRenderedFeatures(bb, {layers: targetLayers});
+  
+  if(!features.length) {
+    return;
+  } 
+  
+  //ポップアップ表示処理
+  let htmlString = "";
+  features.forEach( feature => {
+    htmlString = htmlString + makePopupHtml(feature);
+    console.log(feature.properties);
+  });
+  
+  if(!htmlString || htmlString == "") {
+    return;
+  }
+  
+  popup.setLngLat([ e.lngLat.lng, e.lngLat.lat ])
+    .setHTML(htmlString)
+    .addTo(map);
+    
+}
+
+//選択リスト追加 ----------------------------------
+const myList = {};
+const clearList = () => { 
+  for(sourceId in myList){
+    for(id in myList[sourceId]){
+      delete myList[sourceId][id];
+      refleshSelectedFeatures(sourceId);
+    }
+  }
+}
+
+const refleshSelectedFeatures = (sourceId) => {
+  
+  const selectedIdList = [];
+  for(id in myList[sourceId]){
+    selectedIdList.push(id);
+  }
+  
+  const keyName = overlayInfo.overlayKeyNames[sourceId];
+  console.log(sourceId, keyName);
+  
+  const filter = [
+    "in",
+    ["get", keyName],
+    ["literal", selectedIdList]
+  ];
+  
+  const selectedLayerId = "_my-selected-layer-" + sourceId;
+  
+  if(!map.getLayer(selectedLayerId)){
+    
+    //上乗せレイヤの中から探してくる
+    overlayStyle.layers.forEach( layer => {
+      if(layer.metadata && layer.metadata.isSelectedLayer && layer.source == sourceId){
+        layer.id = selectedLayerId;
+        layer.filter = filter;
+        console.log(selectedLayerId);
+        map.addLayer(layer, 'overlay-highlight');
+      }
+    });
+    
+  }else{
+    map.setFilter(selectedLayerId, filter)
+  }
+  
+  
+}
+
+const orderListFunc = (e) => {
+
+  //レンダリングされた地物を取得
+  const targetLayers = overlayInfo.overlayMainLayerIdList;
+  const sv = 5;
+  const bb = [
+    [e.point.x - sv, e.point.y - sv],
+    [e.point.x + sv, e.point.y + sv]
+  ];
+  const features = map.queryRenderedFeatures(bb, {layers: targetLayers});
+  
+  if(!features.length) {
+    return;
+  }
+  
+  features.forEach( feature => {
+    const sourceId = feature.source;
+    const keyName = overlayInfo.overlayKeyNames[sourceId];
+    
+    
+    //選択された地物情報をリストに追加
+    if(feature.properties[keyName]){
+      const id = feature.properties[keyName];
+      if(!myList[sourceId]) myList[sourceId] = {};
+      
+      if(!myList[sourceId][id]){
+        myList[sourceId][id] = feature;
+        refleshSelectedFeatures(sourceId);
+      }else{
+        delete myList[sourceId][id];
+        refleshSelectedFeatures(sourceId);
+        if(popup) popup.remove();
+      }
+    }
+  });
+
+}
+
+
+
+/*************************************************/
+/*オーバーレイ時の挙動 関係設定                  */
+/*************************************************/
+//別ページ表示
+const makeListHtml = (myList) => {
+
+  let listHtml = "";
+  for(sourceId in myList){
+    for(id in myList[sourceId]){
+      const f = myList[sourceId][id];
+      const prop = f.properties;
+      
+      console.log(prop);
+      
+      if(sourceId == "my-source-2"){
+        let propHtml = `<li>${prop.name} - 上陸（再上陸）直前の位置情報</li>`;
+        
+        propHtml += `<ul>`;
+        propHtml += `<li>上陸日時：${prop["上陸日時"]}</li>`;
+        propHtml += `<li>上陸緯度：${prop["上陸緯度"]}</li>`;
+        propHtml += `<li>上陸経度：${prop["上陸経度"]}</li>`;
+        propHtml += `<li>上陸中心気圧：${prop["上陸中心気圧" ]}</li>`;
+        propHtml += `<li>上陸最大風速：${prop["上陸最大風速" ]}</li>`;
+        propHtml += `</ul>`;
+        
+        listHtml = listHtml + "<li>" + propHtml + "</li>";
+        continue;
+      }
+      
+      let propHtml = `<li>${prop.name}</li>`;
+      propHtml += "<ol>"; 
+      
+      if(prop["上陸回数"]){
+        for( let i=1; i < +prop["上陸回数"]+1; i++){
+          propHtml += `<li><ul>`;
+          
+          propHtml += `<li>上陸日時：${prop["上陸日時_" + i]}</li>`;
+          propHtml += `<li>上陸緯度：${prop["上陸緯度_" + i]}</li>`;
+          propHtml += `<li>上陸経度：${prop["上陸経度_" + i]}</li>`;
+          propHtml += `<li>上陸中心気圧：${prop["上陸中心気圧_" + i]}</li>`;
+          propHtml += `<li>上陸最大風速：${prop["上陸最大風速_" + i]}</li>`;
+          
+          propHtml += `</ul></li>`;
+        }
+      }
+      
+      propHtml += "</ol>"; 
+      
+      listHtml = listHtml + "<li>" + propHtml + "</li>";
+    }
+  }
+  
+  listHtml = "<ul>" + listHtml + "</ul>";
+  return listHtml;
+}
+
+const openOverlayPage = () => {
+ 
+  const pageEle = document.getElementById("overlay-page");
+  const listEle = document.getElementById("overlay-page-list");
+  
+  listEle.innerHTML = makeListHtml(myList);
+  
+  pageEle.style.display = "";
+  console.log(myList);
+ 
+}
+
+const closeOverlayPage = () => {
+ 
+  const pageEle = document.getElementById("overlay-page");
+  pageEle.style.display = "none";
+ 
+}
+
+</script>
+
+</body>
+</html>
